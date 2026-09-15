@@ -1,0 +1,40 @@
+# dataset:
+#   name: "fmri"
+#   data_path: "data/fmri"
+#   train_prop: 0.7
+#   val_prop: 0.1
+
+dataset:
+  name: "sbm"
+  sizes: [10, 10]
+  p_in: 0.8
+  p_out: 0.1
+  num_samples: 100
+  train_prop: 0.7
+  val_prop: 0.1 
+
+training:
+  batch_size: 64
+  epochs: 500
+  learning_rate: 0.001
+  early_stopping:
+    enabled: true
+    patience: 50
+  num_runs: 10
+
+path:
+  name: "topological"
+  stable_filter:
+    alpha: 0.05
+    Ks: [1, 2, 4, 6]
+
+model:
+  name: "gcn_policy"
+  N: 20
+  F_hidden: 256
+  time_embed_dim: 128
+
+evaluation:
+  num_steps: 200
+  blur: 0.05
+  num_sampling_runs: 10
