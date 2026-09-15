@@ -75,23 +75,12 @@ to an arbitrary polynomial graph filter.
 
 For each graph frequency $i$, the deterministic conditional path is
 
-$$
-\hat{x}_{t,i}
-=
-e^{h_i t}\hat{x}_{0,i}
-+
-c_{t,i}
-\left(
-\hat{z}_i-e^{h_i}\hat{x}_{0,i}
-\right),
-$$
+$$ \hat{x}_{t,i} = e^{h_i t}\hat{x}_{0,i} + c_{t,i} \left( \hat{z}_i-e^{h_i}\hat{x}_{0,i} \right), $$
 
 where
 
 $$
-c_{t,i}
-=
-\begin{cases}
+c_{t,i} = \begin{cases}
 e^{h_i(1-t)}
 \dfrac{e^{2h_i t}-1}{e^{2h_i}-1},
 & h_i\neq 0,\\
@@ -103,8 +92,7 @@ $$
 The corresponding corrective target vector field is
 
 $$
-\hat{u}_{t,i}
-=
+\hat{u}_{t,i} =
 a_{t,i}
 \left(
 \hat{z}_i-e^{h_i}\hat{x}_{0,i}
@@ -114,8 +102,7 @@ $$
 where
 
 $$
-a_{t,i}
-=
+a_{t,i} =
 \begin{cases}
 e^{h_i(1-t)}
 \dfrac{2h_i}{e^{2h_i}-1},
