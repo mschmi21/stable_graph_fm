@@ -2,6 +2,8 @@
 
 This is the code for the paper "Stable Filters for Generative Modeling of Graph Signals" by Martin Schmidt and Gonzalo Mateos.
 
+Paper is available on [arXiv](https://arxiv.org/abs/2609.18759)
+
 The configuration file is located here: `configs/graph_fm.yaml`.
 
 ## How to Run
