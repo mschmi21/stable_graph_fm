@@ -8,7 +8,6 @@ from src.datasets import get_dataset
 from src.models import get_model
 from src.prior.prior import GaussianPrior
 from src.evaluation.sampling import euler_sampler
-from src.evaluation.bounds import compute_integral_lipschitz
 
 
 @torch.no_grad()
@@ -142,26 +141,7 @@ def evaluate_checkpoint(
 
     output_norm = norms.mean().item()
 
-    # -----------------------------------------------------
-    # Theoretical bound
-    # -----------------------------------------------------
-
-    C = compute_integral_lipschitz(L=L, coeffs=coeffs)
-
-    N = L.shape[0]
-
-    gamma = C * (1.0 + 8.0 * np.sqrt(N))
-
-    dataset_name = config["dataset"]["name"]
-
-    if dataset_name == "fmri":
-        epsilon_bound = torch.linalg.norm((L - L_tilde).cpu(),ord=2).item()
-    else:
-        epsilon_bound = epsilon
-
-    theoretical_bound = gamma * C_H * epsilon_bound
-
-    return output_norm, theoretical_bound
+    return output_norm
 
 
 def evaluate_K(
@@ -181,7 +161,6 @@ def evaluate_K(
     """
 
     norm_runs = []
-    bound_runs = []
 
     dataset_name = config["dataset"]["name"]
 
@@ -189,27 +168,21 @@ def evaluate_K(
 
         checkpoint_path = (f"checkpoints/{dataset_name}/K_{K}/run_{run}.pt")
 
-        output_norm, theoretical_bound = evaluate_checkpoint(
+        output_norm = evaluate_checkpoint(
             config=config,
             checkpoint_path=checkpoint_path,
             epsilon=epsilon,
         )
 
         norm_runs.append(output_norm)
-        bound_runs.append(theoretical_bound)
 
     norm_runs = np.asarray(norm_runs)
-    bound_runs = np.asarray(bound_runs)
 
     median = np.median(norm_runs)
     q25 = np.percentile(norm_runs, 25)
     q75 = np.percentile(norm_runs, 75)
 
-    bound_median = np.median(bound_runs)
-    bound_q25 = np.percentile(bound_runs, 25)
-    bound_q75 = np.percentile(bound_runs, 75)
-
-    return median, q25, q75, bound_median, bound_q25, bound_q75, norm_runs
+    return median, q25, q75, norm_runs
 
 
 def evaluate_curve(
@@ -230,9 +203,6 @@ def evaluate_curve(
     medians = []
     q25s = []
     q75s = []
-    bound_medians = []
-    bound_q25s = []
-    bound_q75s = []
 
     print("\n===================================")
     print(f"Evaluating K = {K}")
@@ -240,7 +210,7 @@ def evaluate_curve(
 
     for epsilon in epsilons:
 
-        median, q25, q75, bound_median,bound_q25, bound_q75, _ = evaluate_K(
+        median, q25, q75, _ = evaluate_K(
             config=config,
             K=K,
             epsilon=epsilon,
@@ -250,25 +220,17 @@ def evaluate_curve(
         medians.append(median)
         q25s.append(q25)
         q75s.append(q75)
-        bound_medians.append(bound_median)
-        bound_q25s.append(bound_q25)
-        bound_q75s.append(bound_q75)
 
         print(
             f"epsilon = {epsilon:.4e} | "
             f"norm median = {median:.6f} | "
-            f"25-75% = [{q25:.6f}, {q75:.6f}] | "
-            f"bound median = {bound_median:.6f} | "
-            f"bound 25-75% = [{bound_q25:.6f}, {bound_q75:.6f}]"
+            f"25-75% = [{q25:.6f}, {q75:.6f}]"
         )
 
     return (
         np.asarray(medians),
         np.asarray(q25s),
         np.asarray(q75s),
-        np.asarray(bound_medians),
-        np.asarray(bound_q25s),
-        np.asarray(bound_q75s),
     )
 
 
@@ -295,7 +257,6 @@ def main(config_path: str):
     # 10^-3, ..., 10^0
     # -----------------------------------------------------
 
-
     if dataset_name == "fmri":
         epsilons = np.logspace(-2.62, -0.05, 10)
         # epsilons = np.arange(0.1, 1.0, 0.1)
@@ -311,7 +272,7 @@ def main(config_path: str):
 
     for K in Ks:
 
-        medians, q25s, q75s, bounds, bound_q25s, bound_q75s = evaluate_curve(
+        medians, q25s, q75s = evaluate_curve(
             config=config,
             K=K,
             epsilons=epsilons,
@@ -322,9 +283,6 @@ def main(config_path: str):
             "median": medians,
             "q25": q25s,
             "q75": q75s,
-            "bound": bounds,
-            "bound_q25": bound_q25s,
-            "bound_q75": bound_q75s,
         }
 
     # -----------------------------------------------------
@@ -336,16 +294,12 @@ def main(config_path: str):
     plt.figure(figsize=(10, 6))
 
     empirical_lines = []
-    bound_lines = []
 
     for K in Ks:
 
         medians = results[K]["median"]
         q25s = results[K]["q25"]
         q75s = results[K]["q75"]
-        bounds = results[K]["bound"]
-        bound_q25s = results[K]["bound_q25"]
-        bound_q75s = results[K]["bound_q75"]
 
         # Empirical curve
         line, = plt.plot(
@@ -365,26 +319,6 @@ def main(config_path: str):
             q25s,
             q75s,
             alpha=0.2,
-            color=color,
-        )
-
-        # Theoretical bound - same color, dotted
-        bound_line, = plt.plot(
-            epsilons,
-            bounds,
-            linestyle=":",
-            linewidth=2.5,
-            color=color,
-            label=f"K={K}",
-        )
-
-        bound_lines.append(bound_line)
-
-        plt.fill_between(
-            epsilons,
-            bound_q25s,
-            bound_q75s,
-            alpha=0.1,
             color=color,
         )
 
@@ -411,22 +345,9 @@ def main(config_path: str):
     ax = plt.gca()
 
     if dataset_name == "fmri":
-        bound_loc = "upper right"
         empirical_loc = "lower left"
     else:
-        bound_loc = "upper left"
         empirical_loc = "lower right"
-
-    legend_bound = ax.legend(
-        handles=bound_lines,
-        labels=[f"K={K}" for K in Ks],
-        fontsize=18,
-        loc=bound_loc,
-        title="Bound",
-        title_fontsize=18,
-    )
-
-    ax.add_artist(legend_bound)
 
     ax.legend(
         handles=empirical_lines,
