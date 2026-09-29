@@ -12,7 +12,7 @@ The configuration file is located here: `configs/graph_fm.yaml`.
 `python -m scripts.train`
 
 **To evaluate:**
-You have two ways to evaluate the model across graph perturbations and generate the plots from the paper:
+You have two ways to evaluate the model across graph perturbations:
 - Run `python -m scripts.evaluate_1` for (i) the Wasserstein-1 ($W_1$) distance to quantify generative performance.
 - Run `python -m scripts.evaluate_2` for (ii) the variation $\|\Phi_1(\mathbf{x}_0; \tilde{\mathbf{L}}) - \Phi_1(\mathbf{x}_0; \mathbf{L})\|$ in generated outputs induced by graph perturbations.
 
