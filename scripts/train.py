@@ -44,7 +44,7 @@ def main(config_path: str):
             print(f"Run {run + 1}/{num_runs}")
 
             # dataset
-            dataset = get_dataset(config)
+            dataset = get_dataset(config, run)
             train_signals = dataset.train_signals.to(DEVICE) 
             val_signals = dataset.val_signals.to(DEVICE)
 
